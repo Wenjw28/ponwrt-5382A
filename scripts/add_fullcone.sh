@@ -1,87 +1,28 @@
-#!/usr/bin/env bash
+#!/bin/bash
+# PonWrt AN7581 (HG5382A) FullCone NAT1 injector (No SFE)
 set -e
 
-NO_SFE=0
-[ "$1" = "--no-sfe" ] && NO_SFE=1
+echo "==> Applying nft-fullcone patch (no-sfe mode)"
 
-echo "==> Applying nft-fullcone patches"
+# 1. 确保 fw4/nftables 基础（PonWrt 默认满足，此处兜底）
+sed -ri 's/.*CONFIG_PACKAGE_firewall4.*/CONFIG_PACKAGE_firewall4=y/' .config
+sed -ri 's/.*CONFIG_PACKAGE_nftables.*/CONFIG_PACKAGE_nftables=y/' .config
 
-# 1. libnftnl 补丁
-mkdir -p feeds/packages/libs/libnftnl/patches
-cat > feeds/packages/libs/libnftnl/patches/999-nft-fullcone.patch <<'PATCH'
---- a/include/data_reg.h
-+++ b/include/data_reg.h
-@@ -12,6 +12,7 @@ enum nft_data_types {
- 	NFT_DATA_VALUE,
- 	NFT_DATA_VERDICT,
- 	NFT_DATA_CHAIN,
-+	NFT_DATA_FULLCONE,
- };
- 
- struct nft_data_reg {
---- a/src/expr/data.c
-+++ b/src/expr/data.c
-@@ -xx,6 +xx,7 @@ static const char *nft_data_type_name[NFT_DATA_CHAIN + 1] = {
- 	[NFT_DATA_VALUE]	= "value",
- 	[NFT_DATA_VERDICT]	= "verdict",
- 	[NFT_DATA_CHAIN]	= "chain",
-+	[NFT_DATA_FULLCONE]	= "fullcone",
- };
-PATCH
+# 2. 拉取 mufeng05 turboacc 并只打 fullcone（跳过 SFE）
+if [ ! -f /tmp/add_turboacc.sh ]; then
+  curl -sSL https://raw.githubusercontent.com/mufeng05/turboacc/main/add_turboacc.sh -o /tmp/add_turboacc.sh
+fi
+chmod +x /tmp/add_turboacc.sh
+# 使用 --no-sfe 参数，避免 AN7581 编译失败
+bash /tmp/add_turboacc.sh --no-sfe
 
-# 2. nftables 补丁（允许 parser 认 fullcone）
-mkdir -p feeds/packages/net/nftables/patches
-cat > feeds/packages/net/nftables/patches/999-nft-fullcone.patch <<'PATCH'
---- a/src/parser_bison.y
-+++ b/src/parser_bison.y
-@@ -xx,6 +xx,7 @@ int main(int argc, char *argv[])
- %token FULLCONE		"fullcone"
- 
- stmt :	...
-+	|	FullConeStmt
- 	;
-PATCH
-
-# 3. 拉取内核模块源码（nft-fullcone）
-mkdir -p package/kernel/nft-fullcone
-cat > package/kernel/nft-fullcone/Makefile <<'MK'
-include $(TOPDIR)/rules.mk
-include $(INCLUDE_DIR)/kernel.mk
-
-PKG_NAME:=nft-fullcone
-PKG_RELEASE:=1
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/mufeng05/nft-fullcone.git
-PKG_SOURCE_DATE:=2024-01-01
-PKG_SOURCE_VERSION:=master
-PKG_MIRROR_HASH:=skip
-
-include $(INCLUDE_DIR)/package.mk
-
-define KernelPackage/nft-fullcone
-  SUBMENU:=Network Support
-  TITLE:=nftables fullcone NAT support
-  FILES:=$(PKG_BUILD_DIR)/nft_fullcone.ko
-  AUTOLOAD:=$(call AutoLoad,45,nft_fullcone)
-  DEPENDS:=@KERNEL_NFT_NAT
-endef
-
-define Build/Compile
-	$(MAKE) -C "$(LINUX_DIR)" \
-		$(KERNEL_MAKE_FLAGS) \
-		M="$(PKG_BUILD_DIR)" \
-		modules
-endef
-
-$(eval $(call KernelPackage,nft-fullcone))
-MK
-
-# 4. 默认配置追加
+# 3. 强制锁定 fullcone 内核模块与 LuCI（确保 NAT1）
 cat >> .config <<'EOF'
 CONFIG_PACKAGE_kmod-nft-fullcone=y
-CONFIG_PACKAGE_kmod-nft-offload=y
 CONFIG_PACKAGE_luci-app-turboacc=y
+CONFIG_PACKAGE_kmod-nft-offload=y
 EOF
 
-[ "$NO_SFE" = 1 ] && echo "SFE skipped as requested"
-echo "==> fullcone patches staged, run make defconfig after feeds install"
+# 4. 刷新配置
+make defconfig >/dev/null 2>&1 || true
+echo "==> FullCone NAT1 patch applied (SFE disabled)."
