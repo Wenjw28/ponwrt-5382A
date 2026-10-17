@@ -1,0 +1,29 @@
+name: Build PonWrt HG5382A FullCone
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 1}
+      - name: Setup & Feeds
+        run: |
+          sudo apt update && sudo apt install -y build-essential clang flex bison gawk git libncurses-dev libssl-dev python3-setuptools swig unzip zlib1g-dev
+          ./scripts/feeds update -a && ./scripts/feeds install -a
+      - name: Config (5382A)
+        run: |
+          # 假设原仓库有基础配置，或拉取 pbs05 的 an7581.config
+          cp configs/an7581.config .config || true
+          echo "CONFIG_TARGET_airoha_an7581=y" >> .config
+      - name: Inject FullCone (No SFE)
+        run: bash scripts/add_fullcone.sh
+      - name: Compile
+        run: make -j$(nproc) V=s
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ponwrt-hg5382a-fullcone
+          path: bin/targets/airoha/an7581/*hg5382a*
