@@ -21,10 +21,7 @@ define KernelPackage/nft-fullcone
 endef
 
 define Build/Compile
-[TAB]$(MAKE) -C "$(LINUX_DIR)" \
-[TAB]M="$(PKG_BUILD_DIR)" \
-[TAB]$(KERNEL_MAKE_FLAGS) \
-[TAB]modules
+	$(MAKE) -C "$(LINUX_DIR)" M="$(PKG_BUILD_DIR)" $(KERNEL_MAKE_FLAGS) modules
 endef
 
 $(eval $(call KernelPackage,nft-fullcone))
