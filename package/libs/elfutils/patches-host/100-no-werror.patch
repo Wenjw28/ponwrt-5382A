@@ -1,0 +1,24 @@
+--- a/libdw/Makefile.am
++++ b/libdw/Makefile.am
+@@ -39,7 +39,7 @@ libdw = $(lib_LTLIBRARIES)
+ libdw_la_SOURCES =
+ libdw_la_LIBADD = $(libdw_libadd)
+ AM_CPPFLAGS = -I$(srcdir)/../lib -I$(srcdir)/../libelf
+-AM_CFLAGS = $(gnu99_CFLAGS) $(fvisibility_hidden_CFLAGS) -Werror
++AM_CFLAGS = $(gnu99_CFLAGS) $(fvisibility_hidden_CFLAGS)
+--- a/libdwfl/Makefile.am
++++ b/libdwfl/Makefile.am
+@@ -35,7 +35,7 @@ lib_LTLIBRARIES = libdwfl.la
+ libdwfl_la_SOURCES =
+ libdwfl_la_LIBADD = $(libdwfl_libadd)
+ AM_CPPFLAGS = -I$(srcdir)/../lib -I$(srcdir)/../libelf -I$(srcdir)/../libdw
+-AM_CFLAGS = $(gnu99_CFLAGS) $(fvisibility_hidden_CFLAGS) -Werror
++AM_CFLAGS = $(gnu99_CFLAGS) $(fvisibility_hidden_CFLAGS)
+--- a/libdwelf/Makefile.am
++++ b/libdwelf/Makefile.am
+@@ -30,7 +30,7 @@ lib_LTLIBRARIES = libdwelf.la
+ libdwelf_la_SOURCES = dwelf_dwarf_gnu_debugaltlink.c
+ libdwelf_la_LIBADD = $(libdwelf_libadd)
+ AM_CPPFLAGS = -I$(srcdir)/../lib -I$(srcdir)/../libelf
+-AM_CFLAGS = $(gnu99_CFLAGS) $(fvisibility_hidden_CFLAGS) -Werror
++AM_CFLAGS = $(gnu99_CFLAGS) $(fvisibility_hidden_CFLAGS)
